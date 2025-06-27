@@ -5,6 +5,8 @@ LaTeX生成器
 """
 
 import os
+import shutil
+from datetime import datetime
 from collections import OrderedDict
 from typing import Dict, Any
 from pylatex import Document, Command, Package, NoEscape
@@ -20,15 +22,19 @@ from ..utils.text_utils import (
 class LaTeXGenerator:
     """LaTeX生成器类"""
     
-    def __init__(self, document_dict: Dict[str, Any] = None):
+    def __init__(self, document_dict: Dict[str, Any] = None, document_processor=None, handbook_name=None):
         """
         初始化LaTeX生成器
         
         Args:
             document_dict: 文档字典
+            document_processor: 文档处理器，用于获取文件映射关系
+            handbook_name: 手册名称，用于确定封面文件路径
         """
         self.document_dict = document_dict or OrderedDict()
         self.latex_doc = None
+        self.document_processor = document_processor
+        self.handbook_name = handbook_name
         
     def set_document_dict(self, document_dict: Dict[str, Any]) -> None:
         """
@@ -46,7 +52,7 @@ class LaTeXGenerator:
         # 创建LaTeX文档
         self.latex_doc = Document(
             "main_before",
-            documentclass=str(PATHS["src"] / "elegantbook"),
+            documentclass=NoEscape(str(PATHS["src"] / "elegantbook")),
             document_options=["lang=cn", "scheme=chinese", f"{FONT_SIZE}pt"]
         )
         
@@ -92,9 +98,15 @@ class LaTeXGenerator:
             self.latex_doc.append(NoEscape(color_def))
         
         # 添加基本设置
+        # 构建封面文件路径
+        if self.handbook_name:
+            cover_path = PATHS["input_base"] / self.handbook_name / "cover.pdf"
+        else:
+            cover_path = PATHS['figure'] / 'cover.pdf'
+            
         basic_settings = [
             r"\setcounter{tocdepth}{3}",
-            f"\\includepdf[pages=-]{{{PATHS['figure'] / 'cover.pdf'}}}"
+            f"\\includepdf[pages=-]{{{cover_path}}}"
         ]
         
         for setting in basic_settings:
@@ -133,7 +145,7 @@ class LaTeXGenerator:
                     if content["text"]:
                         for paragraph in content["text"]:
                             replaced_paragraph = special_character_replacement(paragraph)
-                            syntax_interpreter(self.latex_doc, replaced_paragraph, serial)
+                            syntax_interpreter(self.latex_doc, replaced_paragraph, serial, self.document_processor)
                             
                 elif content["subsection"] == 0:  # 节 (1-1-0)
                     self.latex_doc.append(Command("section", arguments=content["name"]))
@@ -143,7 +155,7 @@ class LaTeXGenerator:
                     if content["text"]:
                         for paragraph in content["text"]:
                             replaced_paragraph = special_character_replacement(paragraph)
-                            syntax_interpreter(self.latex_doc, replaced_paragraph, serial)
+                            syntax_interpreter(self.latex_doc, replaced_paragraph, serial, self.document_processor)
                             
                 else:  # 小节 (1-1-1)
                     self.latex_doc.append(Command("subsection", arguments=content["name"]))
@@ -153,16 +165,16 @@ class LaTeXGenerator:
                     if content["text"]:
                         for paragraph in content["text"]:
                             replaced_paragraph = special_character_replacement(paragraph)
-                            syntax_interpreter(self.latex_doc, replaced_paragraph, serial)
+                            syntax_interpreter(self.latex_doc, replaced_paragraph, serial, self.document_processor)
             else:
                 print("文件编号错误，请先运行文档处理器")
     
-    def generate_tex_file(self, output_dir: str = None) -> str:
+    def generate_tex_file(self, build_dir: str = None) -> str:
         """
-        生成tex文件
+        生成tex文件到build目录
         
         Args:
-            output_dir: 输出目录，默认使用配置中的路径
+            build_dir: 构建目录
             
         Returns:
             生成的tex文件路径
@@ -170,14 +182,19 @@ class LaTeXGenerator:
         if not self.latex_doc:
             raise ValueError("LaTeX文档未初始化")
         
-        if output_dir is None:
-            output_dir = str(PATHS["tex_output"])
+        if build_dir is None:
+            # 根据手册名创建独立的build目录
+            base_build = PATHS["tex_output"] / "build"
+            if self.handbook_name:
+                build_dir = str(base_build / self.handbook_name)
+            else:
+                build_dir = str(base_build / "default")
         
-        # 确保输出目录存在
-        os.makedirs(output_dir, exist_ok=True)
+        # 确保build目录存在
+        os.makedirs(build_dir, exist_ok=True)
         
         # 生成tex文件
-        tex_file_path = os.path.join(output_dir, "main_before.tex")
+        tex_file_path = os.path.join(build_dir, "main_before.tex")
         self.latex_doc.generate_tex(tex_file_path.replace('.tex', ''))
         
         return tex_file_path
@@ -194,8 +211,8 @@ class LaTeXGenerator:
             清理后的tex文件路径
         """
         if output_path is None:
-            output_dir = os.path.dirname(tex_file_path)
-            output_path = os.path.join(output_dir, "main.tex")
+            build_dir = os.path.dirname(tex_file_path)
+            output_path = os.path.join(build_dir, "main.tex")
         
         # 读取并清理文件
         with open(tex_file_path, "r", encoding="utf-8") as f1:
@@ -241,13 +258,30 @@ class LaTeXGenerator:
         finally:
             os.chdir(original_dir)
     
-    def generate_full_latex(self, output_dir: str = None) -> str:
+    def _get_version_number(self) -> str:
+        """
+        根据已生成的手册数量确定版本号
+        
+        Returns:
+            版本号字符串，如 "v1", "v2" 等
+        """
+        output_dir = PATHS["pdf_output"]
+        if not os.path.exists(output_dir):
+            return "v1"
+        
+        # 统计该手册已生成的PDF数量
+        handbook_pattern = f"{self.handbook_name}_" if self.handbook_name else ""
+        existing_pdfs = [f for f in os.listdir(output_dir) 
+                        if f.endswith('.pdf') and (not self.handbook_name or handbook_pattern in f)]
+        
+        # 版本号从v1开始
+        version_number = len(existing_pdfs) + 1
+        return f"v{version_number}"
+    
+    def generate_full_latex(self) -> str:
         """
         完整的LaTeX生成流程
         
-        Args:
-            output_dir: 输出目录
-            
         Returns:
             最终PDF文件路径
         """
@@ -258,7 +292,7 @@ class LaTeXGenerator:
         self.add_document_content()
         
         print("生成tex文件...")
-        tex_file_path = self.generate_tex_file(output_dir)
+        tex_file_path = self.generate_tex_file()
         
         print("清理tex文件...")
         clean_tex_path = self.clean_tex_file(tex_file_path)
@@ -267,9 +301,24 @@ class LaTeXGenerator:
         compile_result = self.compile_pdf(clean_tex_path)
         
         if compile_result == 0:
-            pdf_path = clean_tex_path.replace('.tex', '.pdf')
-            print(f"PDF生成成功: {pdf_path}")
-            return pdf_path
+            # 生成带版本号和时间戳的PDF文件名
+            version = self._get_version_number()
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            final_pdf_name = f"{self.handbook_name or 'handbook'}_{version}_{timestamp}.pdf"
+            
+            # 移动PDF到输出目录
+            temp_pdf_path = clean_tex_path.replace('.tex', '.pdf')
+            output_dir = PATHS["pdf_output"]
+            os.makedirs(output_dir, exist_ok=True)
+            final_pdf_path = os.path.join(output_dir, final_pdf_name)
+            
+            if os.path.exists(temp_pdf_path):
+                shutil.move(temp_pdf_path, final_pdf_path)
+                print(f"PDF生成成功: {final_pdf_path}")
+                return final_pdf_path
+            else:
+                print("PDF文件未生成")
+                return ""
         else:
             print("PDF编译失败")
             return ""
