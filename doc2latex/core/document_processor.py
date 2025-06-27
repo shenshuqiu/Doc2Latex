@@ -33,6 +33,7 @@ class DocumentProcessor:
         self.processed_document_dir = processed_document_dir or str(PATHS["document"])
         self.document_dict = OrderedDict()
         self.book_tree = Tree()
+        self.file_mapping = {}  # 存储原始文件名到映射文件名的对应关系
     
     def convert_all_doc_to_docx(self) -> None:
         """
@@ -64,13 +65,35 @@ class DocumentProcessor:
     
     def validate_document_brackets(self) -> None:
         """
-        验证文档中的中文方括号配对
+        验证文档中的中文方括号配对和语法格式
         """
+        from ..utils.text_utils import validate_syntax_patterns
+        
+        all_errors = []
+        
         for serial, content in self.document_dict.items():
             if content.get("text"):
                 for paragraph_num, paragraph in enumerate(content["text"]):
+                    # 检查方括号配对
                     if not check_chinese_square_brackets_pairs(paragraph):
                         raise AssertionError(f"方括号未配对: {serial} 第{paragraph_num + 1}段")
+                    
+                    # 检查语法格式错误
+                    syntax_errors = validate_syntax_patterns(paragraph, f"{serial}第{paragraph_num + 1}段")
+                    all_errors.extend(syntax_errors)
+        
+        # 如果有严重错误，抛出异常
+        if all_errors:
+            print("检测到语法格式问题:")
+            for error in all_errors:
+                print(f"  - {error}")
+            
+            # 检查是否有会导致编译失败的严重错误
+            serious_errors = [e for e in all_errors if any(keyword in e for keyword in 
+                             ["嵌套的URL命令", "不完整的URL命令", "严重的引用格式错误"])]
+            
+            if serious_errors:
+                raise AssertionError(f"检测到会导致LaTeX编译失败的严重语法错误: {len(serious_errors)}个")
     
     def build_document_tree(self) -> None:
         """
@@ -220,3 +243,19 @@ class DocumentProcessor:
             文档树对象
         """
         return self.book_tree
+    
+    def get_original_filename(self, mapped_serial: str) -> str:
+        """
+        根据映射后的文件序列号获取原始文件名
+        
+        Args:
+            mapped_serial: 映射后的文件序列号 (如 "4-3-2")
+            
+        Returns:
+            str: 原始文件名 (如 "9-3-2")，如果未找到映射则返回原序列号
+        """
+        # 反向查找映射关系
+        for original, mapped in self.file_mapping.items():
+            if mapped.replace('.docx', '') == mapped_serial:
+                return original.replace('.docx', '')
+        return mapped_serial

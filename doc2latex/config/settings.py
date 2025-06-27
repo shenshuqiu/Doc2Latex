@@ -49,10 +49,33 @@ TERM_DICT = {
     "劳动派遣": "劳务派遣"
 }
 
+# 手册配置
+HANDBOOKS = {
+    "锻炼手册": {
+        "name": "锻炼手册",
+        "name_en": "exercise_manual",
+        "chapters": list(range(6, 12)),  # 第6-11章
+        "description": "身体锻炼、康复训练、运动指导"
+    },
+    "急救手册": {
+        "name": "急救手册", 
+        "name_en": "first_aid_manual",
+        "chapters": list(range(1, 6)),   # 第1-5章
+        "description": "急救知识、紧急处理、医疗指导"
+    },
+    "食物手册": {
+        "name": "食物手册",
+        "name_en": "food_manual", 
+        "chapters": list(range(12, 15)), # 第12-14章
+        "description": "营养知识、饮食建议、健康饮食"
+    }
+}
+
 # 路径配置
 PATHS = {
     "raw_document": PROJECT_ROOT / "data" / "input" / "raw_document",
     "document": PROJECT_ROOT / "data" / "input" / "document", 
+    "input_base": PROJECT_ROOT / "data" / "input",
     "image": PROJECT_ROOT / "data" / "assets" / "image",
     "figure": PROJECT_ROOT / "data" / "assets" / "figure",
     "latex_output": PROJECT_ROOT / "latex_output",

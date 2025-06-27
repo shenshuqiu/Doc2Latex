@@ -205,6 +205,12 @@ def syntax_interpreter_traditional(ldoc: Any, string: str, serial: str) -> None:
                 ldoc.append(NoEscape(r"\vspace{0.4ex}"))
                 syntax_interpreter_traditional(ldoc, after, serial)
                 
+            elif syntax == "加粗" or syntax == "加強":  # 【加粗：文本內容】或【加強：文本內容】
+                syntax_interpreter_traditional(ldoc, pre, serial)
+                ldoc.append(NoEscape(rf"\textbf{{{emphasis}}}"))
+                syntax_interpreter_traditional(ldoc, after, serial)
+                
+                
             elif syntax in BOX_DICT_TRADITIONAL.keys():
                 syntax_interpreter_traditional(ldoc, pre, serial)
                 color = BOX_DICT_TRADITIONAL[syntax]
@@ -253,6 +259,7 @@ def syntax_interpreter_traditional(ldoc: Any, string: str, serial: str) -> None:
             ldoc.append(Command("par"))
             ldoc.append(NoEscape(r"\vspace{0.4ex}"))
             ldoc.append(Command("par"))
+            
             
         elif content in BOX_DICT_TRADITIONAL.keys():
             syntax_interpreter_traditional(ldoc, pre, serial)

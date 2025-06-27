@@ -33,7 +33,8 @@ def save_docx_to_dict(docx_file_path: str, document_dict: Dict[str, Any]) -> Non
 
     # 通过路径获得文档的序号：
     # docx_file_path = "document/7-2-3.docx" -> serial = "7-2-3"
-    serial = re.search(r"(?<=[\\/])(.*)(?=\.)", docx_file_path).group()
+    filename = os.path.basename(docx_file_path)
+    serial = os.path.splitext(filename)[0]
 
     # 在document_dict中创建一个字典，键为serial
     document_dict[serial] = OrderedDict()
@@ -62,7 +63,6 @@ def save_docx_to_dict(docx_file_path: str, document_dict: Dict[str, Any]) -> Non
     # 文档无内容
     if len(para_list) == 1 or len(para_list) == 2:
         document_dict[serial]["text"] = ""
-        print(f"{serial} 仅标题")
         return
     else:
         document_dict[serial]["text"] = [x for x in para_list[2:] if x != ""]
@@ -82,11 +82,33 @@ def image_is_existed(image_name: str, image_path: str = None) -> bool:
     if image_path is None:
         image_path = str(PATHS["image"])
     
-    image_type_list = ["png", "jpg", "jpeg"]
+    image_type_list = ["png", "PNG", "jpg", "JPG", "jpeg", "JPEG"]
     for image_type in image_type_list:
         if os.path.exists(os.path.join(image_path, f"{image_name}.{image_type}")):
             return True
     return False
+
+
+def get_image_filename_with_extension(image_name: str, image_path: str = None) -> str:
+    """
+    获取带扩展名的完整图片文件名
+    
+    Args:
+        image_name: 图片名称（不包含扩展名）
+        image_path: 图片目录路径，默认使用配置中的路径
+        
+    Returns:
+        带扩展名的图片文件名，如果不存在则返回原名称
+    """
+    if image_path is None:
+        image_path = str(PATHS["image"])
+    
+    image_type_list = ["png", "PNG", "jpg", "JPG", "jpeg", "JPEG"]
+    for image_type in image_type_list:
+        full_path = os.path.join(image_path, f"{image_name}.{image_type}")
+        if os.path.exists(full_path):
+            return f"{image_name}.{image_type}"
+    return image_name  # 如果找不到，返回原名称
 
 
 def get_file_list(directory: str, extensions: Optional[List[str]] = None) -> List[str]:

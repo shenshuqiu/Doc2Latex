@@ -98,11 +98,8 @@ dmypy.json
 # LaTeX output directory
 latex_output/build/*
 !latex_output/build/.gitkeep
-latex_output/tex/*.aux
-latex_output/tex/*.log
-latex_output/tex/*.synctex.gz
-latex_output/tex/*.fls
-latex_output/tex/*.fdb_latexmk
+latex_output/tex/*
+latex_output/pdf/*
 
 # Temporary files
 *.tmp
@@ -123,5 +120,18 @@ archive
 archive/                    # 归档的原始代码文件
 latex_output/              # LaTeX编译输出目录
 data/assets/
-data/input/
+
+# 输入文件不纳入版本控制，但保留目录结构
+data/input/raw_document/*
+!data/input/raw_document/.gitkeep
+data/input/document/*
+!data/input/document/.gitkeep
+
+# 手册输入文件夹 - 保留结构和说明文件
+data/input/锻炼手册/*
+!data/input/锻炼手册/.gitkeep
+data/input/急救手册/*
+!data/input/急救手册/.gitkeep
+data/input/食物手册/*
+!data/input/食物手册/.gitkeep
 
