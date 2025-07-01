@@ -5,6 +5,7 @@
 """
 
 import os
+import json
 from pathlib import Path
 
 # 获取项目根目录
@@ -18,23 +19,34 @@ FONT_SIZE = 12  # 字体大小(pt)
 PICTURE_POSITION = "htbp"  # 图片位置
 PICTURE_WIDTH = "10cm"  # 图片宽度
 
-# 模块配置
-BOX_DICT = {
-    "名词解释": "green",
-    "操作步骤": "green", 
-    "实用建议": "orange",
-    "编者的话": "red",
-    "就医建议": "red"
-}
+# 从配置文件加载模块设置
+def load_module_config():
+    """加载模块配置"""
+    config_file = Path(__file__).parent / "modules.json"
+    try:
+        with open(config_file, 'r', encoding='utf-8') as f:
+            config = json.load(f)
+            return config.get('modules', {}), config.get('modules_traditional', {})
+    except (FileNotFoundError, json.JSONDecodeError):
+        # 如果配置文件不存在或格式错误，使用默认配置
+        default_modules = {
+            "名词解释": "green",
+            "操作步骤": "green", 
+            "实用建议": "orange",
+            "编者的话": "red",
+            "就医建议": "red"
+        }
+        default_traditional = {
+            "名詞解釋": "green",
+            "操作步驟": "green",
+            "實用建議": "orange", 
+            "編者的話": "red",
+            "就醫建議": "red"
+        }
+        return default_modules, default_traditional
 
-# 繁体版模块配置
-BOX_DICT_TRADITIONAL = {
-    "名詞解釋": "green",
-    "操作步驟": "green",
-    "實用建議": "orange", 
-    "編者的話": "red",
-    "就醫建議": "red"
-}
+# 模块配置
+BOX_DICT, BOX_DICT_TRADITIONAL = load_module_config()
 
 # 列表名称配置
 UNORDERED_LIST_NAME = ["无序", "无序列表", "无序列"]
