@@ -10,6 +10,7 @@
 - 📊 **图片支持**: 自动处理和引用图片，支持简繁体名称匹配
 - 🔧 **模块化**: 完全重构的模块化代码结构
 - 🌏 **双版本**: 支持简体中文和繁体中文两个版本
+- ⚙️ **可配置**: 支持通过配置文件自定义模块颜色和类型
 
 ## 安装与使用
 
@@ -62,6 +63,8 @@ doc2latex/
 │   │   ├── text_utils_traditional.py # 文本处理工具（繁体版）
 │   │   └── doc_converter.py          # doc转docx转换器
 │   └── config/               # 配置模块
+│       ├── settings.py              # 主配置文件
+│       └── modules.json             # 模块颜色配置文件
 ├── data/                     # 数据目录（git忽略）
 ├── latex_output/            # LaTeX编译输出（git忽略）
 ├── archive/                 # 归档目录（git忽略）
@@ -84,4 +87,68 @@ doc2latex/
 - 原始的.ipynb文件已移动到`archive/original_notebooks/`
 - 其他原始文件已移动到`archive/original_files/`
 - 数据目录和归档目录已从git版本控制中排除
+
+## 配置文件说明
+
+### 模块颜色配置
+
+项目支持通过 `doc2latex/config/modules.json` 配置文件自定义模块的颜色和类型：
+
+```json
+{
+  "description": "模块颜色配置文件",
+  "version": "1.0",
+  "available_colors": [
+    "green",
+    "orange", 
+    "red"
+  ],
+  "modules": {
+    "名词解释": "green",
+    "操作步骤": "green",
+    "实用建议": "orange",
+    "编者的话": "red",
+    "就医建议": "red"
+  },
+  "modules_traditional": {
+    "名詞解釋": "green",
+    "操作步驟": "green", 
+    "實用建議": "orange",
+    "編者的話": "red",
+    "就醫建議": "red"
+  }
+}
+```
+
+#### 配置说明
+
+- **available_colors**: 可用的颜色列表，目前支持 `green`、`orange`、`red` 三种颜色
+- **modules**: 简体中文模块配置，格式为 `"模块名": "颜色"`
+- **modules_traditional**: 繁体中文模块配置，格式同上
+
+#### 使用方法
+
+1. **添加新模块**: 在 `modules` 或 `modules_traditional` 中添加新的键值对
+2. **修改颜色**: 将模块对应的颜色值改为三种可用颜色之一
+3. **自动生效**: 重新运行程序时会自动加载新配置
+
+#### 错误处理
+
+- 如果配置文件不存在或格式错误，系统会自动使用默认配置
+- 系统会验证颜色是否为有效值，无效颜色会导致配置加载失败
+
+#### 测试配置
+
+可以运行以下命令测试配置功能：
+
+```bash
+python tests/test_module_config.py
+```
+
+该测试脚本会验证：
+- 配置文件加载功能
+- 错误处理机制
+- 动态配置更新
+- 繁体中文配置
+- 颜色验证
 EOF < /dev/null
