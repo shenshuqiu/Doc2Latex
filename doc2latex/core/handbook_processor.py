@@ -32,44 +32,84 @@ class HandbookProcessor:
     def discover_handbooks(self) -> Dict[str, Dict]:
         """
         发现并验证输入目录中的手册
+        自动发现input目录下的所有文件夹作为项目
         
         Returns:
             Dict: 发现的手册信息
         """
         discovered = {}
         
+        # 首先处理预定义的手册
         for handbook_name, config in HANDBOOKS.items():
             handbook_path = self.input_base / handbook_name
             
             if handbook_path.exists() and handbook_path.is_dir():
-                # 检查文件
-                docx_files = list(handbook_path.glob("*.docx"))
-                image_files = list(handbook_path.glob("*.jpg")) + \
-                             list(handbook_path.glob("*.JPG")) + \
-                             list(handbook_path.glob("*.png")) + \
-                             list(handbook_path.glob("*.PNG")) + \
-                             list(handbook_path.glob("*.jpeg")) + \
-                             list(handbook_path.glob("*.JPEG"))
-                # 过滤掉封面文件
-                image_files = [f for f in image_files if f.name != "cover.pdf"]
-                cover_file = handbook_path / "cover.pdf"
-                
-                discovered[handbook_name] = {
-                    "path": handbook_path,
-                    "config": config,
-                    "docx_files": len(docx_files),
-                    "image_files": len(image_files),
-                    "has_cover": cover_file.exists(),
-                    "docx_list": [f.name for f in docx_files],
-                    "image_list": [f.name for f in image_files]
-                }
-                
-                self.logger.log_handbook_discovery(
-                    handbook_name, len(docx_files), len(image_files), cover_file.exists()
-                )
+                handbook_info = self._analyze_handbook_folder(handbook_path, handbook_name, config)
+                if handbook_info:
+                    discovered[handbook_name] = handbook_info
+        
+        # 然后自动发现其他文件夹
+        if self.input_base.exists():
+            for item in self.input_base.iterdir():
+                if item.is_dir() and item.name not in discovered:
+                    # 跳过系统文件夹和已知的非项目文件夹
+                    skip_folders = {"document", "raw_document", "logs", "__pycache__", ".DS_Store"}
+                    if item.name not in skip_folders:
+                        # 创建默认配置
+                        default_config = {
+                            "name": item.name,
+                            "name_en": item.name.lower().replace(" ", "_").replace("-", "_"),
+                            "chapters": list(range(1, 100)),  # 支持更宽泛的章节范围
+                            "description": f"自动发现的项目: {item.name}"
+                        }
+                        
+                        handbook_info = self._analyze_handbook_folder(item, item.name, default_config)
+                        if handbook_info and (handbook_info["docx_files"] > 0 or handbook_info["image_files"] > 0):
+                            discovered[item.name] = handbook_info
         
         self.handbooks = discovered
         return discovered
+    
+    def _analyze_handbook_folder(self, handbook_path: Path, handbook_name: str, config: dict) -> dict:
+        """
+        分析手册文件夹的内容
+        
+        Args:
+            handbook_path: 手册路径
+            handbook_name: 手册名称 
+            config: 配置信息
+            
+        Returns:
+            dict: 手册信息，如果无效则返回None
+        """
+        # 检查文件
+        docx_files = list(handbook_path.glob("*.docx"))
+        image_files = list(handbook_path.glob("*.jpg")) + \
+                     list(handbook_path.glob("*.JPG")) + \
+                     list(handbook_path.glob("*.png")) + \
+                     list(handbook_path.glob("*.PNG")) + \
+                     list(handbook_path.glob("*.jpeg")) + \
+                     list(handbook_path.glob("*.JPEG"))
+        
+        # 过滤掉封面文件
+        image_files = [f for f in image_files if f.name != "cover.pdf"]
+        cover_file = handbook_path / "cover.pdf"
+        
+        handbook_info = {
+            "path": handbook_path,
+            "config": config,
+            "docx_files": len(docx_files),
+            "image_files": len(image_files),
+            "has_cover": cover_file.exists(),
+            "docx_list": [f.name for f in docx_files],
+            "image_list": [f.name for f in image_files]
+        }
+        
+        self.logger.log_handbook_discovery(
+            handbook_name, len(docx_files), len(image_files), cover_file.exists()
+        )
+        
+        return handbook_info
     
     def prepare_handbook_processing(self, handbook_name: str) -> bool:
         """
@@ -364,12 +404,9 @@ class HandbookProcessor:
         
         self.logger.debug("开始收集所有手册的图片...")
         
-        # 遍历所有手册文件夹
-        for handbook_name in HANDBOOKS.keys():
-            handbook_path = self.input_base / handbook_name
-            
-            if not handbook_path.exists():
-                continue
+        # 遍历所有发现的手册文件夹（包括预定义和自动发现的）
+        for handbook_name, handbook_info in self.handbooks.items():
+            handbook_path = handbook_info["path"]
                 
             self.logger.debug(f"收集手册 {handbook_name} 的图片...")
             

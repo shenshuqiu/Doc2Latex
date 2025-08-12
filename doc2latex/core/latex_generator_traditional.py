@@ -110,18 +110,32 @@ class LaTeXGeneratorTraditional:
             self.latex_doc.append(NoEscape(color_def))
         
         # 添加基本设置
-        # 构建封面文件路径
+        # 构建封面文件路径，并检查文件是否存在
+        cover_settings = [r"\setcounter{tocdepth}{3}"]
+        
         if self.handbook_name:
             cover_path = PATHS["input_base"] / self.handbook_name / "cover.pdf"
+            if not cover_path.exists():
+                print(f"警告: 手冊 '{self.handbook_name}' 缺少封面文件，使用默認封面")
+                cover_path = PATHS['figure'] / 'cover.pdf'
         else:
             cover_path = PATHS['figure'] / 'cover.pdf'
-            
-        basic_settings = [
-            r"\setcounter{tocdepth}{3}",
-            f"\\includepdf[pages=-]{{{cover_path}}}"
-        ]
         
-        for setting in basic_settings:
+        # 最終檢查封面文件是否存在
+        if cover_path.exists():
+            cover_settings.append(f"\\includepdf[pages=-]{{{cover_path}}}")
+            print(f"使用封面文件: {cover_path}")
+        else:
+            print(f"警告: 未找到封面文件 {cover_path}，跳過封面頁面")
+            # 添加一個空的標題頁代替封面
+            cover_settings.append(r"\begin{titlepage}\centering\vspace*{\fill}")
+            if self.handbook_name:
+                cover_settings.append(f"\\Huge\\textbf{{{self.handbook_name}}}")
+            else:
+                cover_settings.append(r"\Huge\textbf{文檔}")
+            cover_settings.append(r"\vspace*{\fill}\end{titlepage}")
+        
+        for setting in cover_settings:
             self.latex_doc.append(NoEscape(setting))
         
         # 添加前言、目录和主要内容开始

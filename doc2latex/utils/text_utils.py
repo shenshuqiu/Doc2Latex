@@ -193,6 +193,17 @@ def special_character_replacement(text: str) -> str:
     text = re.sub(r"【加粗:(.*?)】", bold_replacement, text)
     text = re.sub(r"【加粗：(.*?)】", bold_replacement, text)
     
+    # 替换脚注
+    def footnote_replacement(match):
+        content = match.group(1).strip()
+        if content:
+            return f"\\footnote{{{content}}}"
+        else:
+            return ""  # 空内容直接忽略
+    
+    text = re.sub(r"【脚注:(.*?)】", footnote_replacement, text)
+    text = re.sub(r"【脚注：(.*?)】", footnote_replacement, text)
+    
     # 替换引用
     if "引用" in text and "-" in text:
         text = text.replace("-", "{-}")
@@ -291,6 +302,11 @@ def syntax_interpreter(ldoc: Any, string: str, serial: str, document_processor=N
             elif syntax == "加粗":  # 【加粗：文本内容】
                 syntax_interpreter(ldoc, pre, serial, document_processor)
                 ldoc.append(NoEscape(rf"\textbf{{{emphasis}}}"))
+                syntax_interpreter(ldoc, after, serial, document_processor)
+                
+            elif syntax == "脚注":  # 【脚注：脚注内容】
+                syntax_interpreter(ldoc, pre, serial, document_processor)
+                ldoc.append(NoEscape(rf"\footnote{{{emphasis}}}"))
                 syntax_interpreter(ldoc, after, serial, document_processor)
                 
                 

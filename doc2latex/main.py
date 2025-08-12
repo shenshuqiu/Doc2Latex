@@ -153,12 +153,17 @@ def full_process(traditional=False, handbook_name=None):
         traditional: 是否使用繁体版
         handbook_name: 指定手册名称，None表示处理所有手册
     """
-    version_name = "繁體版" if traditional else "简体版"
-    mode = "手册模式" if handbook_name or any(Path(PATHS["input_base"] / name).exists() for name in HANDBOOKS.keys()) else "传统模式"
-    print(f"=== Doc2LaTeX 完整处理流程 ({version_name} - {mode}) ===")
+    # 动态检查是否有手册文件夹（包括预定义和自动发现的）
+    def has_handbooks_check():
+        handbook_processor = HandbookProcessor()
+        discovered = handbook_processor.discover_handbooks()
+        return len(discovered) > 0
     
-    # 检查是否有手册文件夹
-    has_handbooks = any(Path(PATHS["input_base"] / name).exists() for name in HANDBOOKS.keys())
+    has_handbooks = has_handbooks_check()
+    
+    version_name = "繁體版" if traditional else "简体版"
+    mode = "手册模式" if handbook_name or has_handbooks else "传统模式"
+    print(f"=== Doc2LaTeX 完整处理流程 ({version_name} - {mode}) ===")
     
     if has_handbooks:
         # 手册模式
@@ -213,10 +218,11 @@ def main():
     data/input/document/             # 处理后的文档
     data/assets/image/               # 图片资源
     
-  手册模式:
+  手册模式 (自动发现):
     data/input/锻炼手册/              # 锻炼手册文件夹
     data/input/急救手册/              # 急救手册文件夹
     data/input/食物手册/              # 食物手册文件夹
+    data/input/你的项目名/            # 任何包含.docx和图片文件的文件夹
     
   输出:
     latex_output/tex/                # 生成的LaTeX文件
@@ -246,7 +252,7 @@ def main():
     parser.add_argument(
         "--handbook",
         type=str,
-        help="处理指定的手册（锻炼手册、急救手册、食物手册）"
+        help="处理指定的手册（支持任何在input目录下的项目文件夹）"
     )
     
     parser.add_argument(
@@ -270,8 +276,13 @@ def main():
         print(handbook_processor.generate_handbook_report())
         return
     
-    # 检查是否有手册文件夹
-    has_handbooks = any(Path(PATHS["input_base"] / name).exists() for name in HANDBOOKS.keys())
+    # 动态检查是否有手册文件夹（包括预定义和自动发现的）
+    def has_handbooks_check():
+        handbook_processor = HandbookProcessor()
+        discovered = handbook_processor.discover_handbooks()
+        return len(discovered) > 0
+    
+    has_handbooks = has_handbooks_check()
     
     if not has_handbooks:
         # 传统模式，检查必要目录
@@ -290,9 +301,9 @@ def main():
             for dir_path in missing_dirs:
                 print(f"  - {dir_path}")
             print("\n请确保项目目录结构正确，或创建手册文件夹。")
-            print("\n手册模式目录结构:")
-            for name in HANDBOOKS.keys():
-                print(f"  - data/input/{name}/")
+            print("\n可以在以下位置创建项目文件夹:")
+            print(f"  - {PATHS['input_base']}/你的项目名/")
+            print("  支持任何包含.docx和图片文件的文件夹")
             sys.exit(1)
     
     # 根据参数执行相应流程
