@@ -8,8 +8,8 @@ import os
 import json
 from pathlib import Path
 
-# 获取项目根目录
-PROJECT_ROOT = Path(__file__).parent.parent.parent
+# 获取项目根目录 (src layout: src/doc2latex/config/settings.py -> 根目录)
+PROJECT_ROOT = Path(__file__).parent.parent.parent.parent
 
 # LaTeX 格式配置
 BOLD_COLOR = "blue"  # 粗体颜色

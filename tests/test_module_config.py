@@ -54,8 +54,8 @@ def test_config_file_error_handling():
     print("测试2: 配置文件错误处理")
     print("=" * 50)
     
-    config_path = Path("doc2latex/config/modules.json")
-    backup_path = Path("doc2latex/config/modules.json.backup")
+    config_path = Path("src/doc2latex/config/modules.json")
+    backup_path = Path("src/doc2latex/config/modules.json.backup")
     
     try:
         # 备份原配置文件
@@ -103,8 +103,8 @@ def test_dynamic_config_update():
     print("测试3: 动态配置更新")
     print("=" * 50)
     
-    config_path = Path("doc2latex/config/modules.json")
-    backup_path = Path("doc2latex/config/modules.json.backup")
+    config_path = Path("src/doc2latex/config/modules.json")
+    backup_path = Path("src/doc2latex/config/modules.json.backup")
     
     try:
         # 备份原配置
